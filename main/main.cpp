@@ -23,6 +23,8 @@ extern "C" void app_main()
 {
 
 // Initialize sub-systems in orders of dependency ...
+  gpio_install_isr_service(0);
+
   wifi_initialize();    
   init_mqtt_service();
   ioextender_initialize();
