@@ -1,6 +1,8 @@
 #include "ioextender.h"
 #include "esp_log.h"
 
+#include <pcf8574_esp.h>
+
 static const char *TAG = "ioextender";
 
 static QueueHandle_t ioextender_queue;
