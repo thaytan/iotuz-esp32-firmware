@@ -8,8 +8,6 @@
 #include "freertos/queue.h"
 
 #include "pins.h"
-#include <pcf8574_esp.h>
-#include <Wire.h>
 
 #define IOEXT_ACCEL_INT          0
 #define IOEXT_A_BTN              1
