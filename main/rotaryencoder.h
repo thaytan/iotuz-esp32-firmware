@@ -8,8 +8,6 @@
 #include "freertos/queue.h"
 
 #include "pins.h"
-#include <pcf8574_esp.h>
-#include <Wire.h>
 
 #define RENC_DEBOUNCE_MILLIS 100
 

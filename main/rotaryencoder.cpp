@@ -1,7 +1,8 @@
 #include "rotaryencoder.h"
 #include "esp_log.h"
+#include <driver/gpio.h>
 
-static const char *TAG = "ioextender";
+static const char *TAG = "rotaryencoder";
 
 static QueueHandle_t encoder_queue;
 static SemaphoreHandle_t rotaryencoder_interrupt_sem;
@@ -22,16 +23,25 @@ void rotaryencoder_subscribe(QueueHandle_t queue)
 
 static void rotaryencoder_check_task(void *pvParameter)
 {
-    pinMode(RENC_PIN1, INPUT_PULLUP);
-    pinMode(RENC_PIN2, INPUT_PULLUP);
-
     rotaryencoder_check_s encoder = {0,0,0,0,0,"Encoder1"};
+    gpio_config_t io_conf;
 
-    attachInterrupt(digitalPinToInterrupt(RENC_PIN1), EncoderInterrupt, FALLING);
-    attachInterrupt(digitalPinToInterrupt(RENC_PIN2), EncoderInterrupt, FALLING);
+    gpio_pad_select_gpio (RENC_PIN1);
+    gpio_pad_select_gpio (RENC_PIN2);
+
+    io_conf.intr_type = GPIO_INTR_NEGEDGE;
+    io_conf.pin_bit_mask = (1LL << RENC_PIN1) | (1LL << RENC_PIN2);
+    io_conf.mode = GPIO_MODE_INPUT;
+    io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
+    io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
+
+    gpio_config(&io_conf);
+
+    gpio_isr_handler_add (RENC_PIN1, (gpio_isr_t) EncoderInterrupt, (void *)TAG);
+    gpio_isr_handler_add (RENC_PIN2, (gpio_isr_t) EncoderInterrupt, (void *)TAG);
 
     while(1) {
-	  xSemaphoreTake(rotaryencoder_interrupt_sem, portMAX_DELAY); /* Wait for interrupt */
+      xSemaphoreTake(rotaryencoder_interrupt_sem, portMAX_DELAY); /* Wait for interrupt */
       update_encoder(&encoder);
     }
 }
@@ -41,8 +51,8 @@ void update_encoder(rotaryencoder_check_s *encoder)
 
   int last_encoder_value = encoder->encoder_value;
 
-  int MSB = digitalRead(RENC_PIN1);
-  int LSB = digitalRead(RENC_PIN2);
+  int MSB = gpio_get_level (RENC_PIN1);
+  int LSB = gpio_get_level (RENC_PIN2);
 
   int encoded = (MSB << 1) |LSB; //converting the 2 pin value to single number
   int sum  = (encoder->last_encoded << 2) | encoded; //adding it to the previous encoded value
@@ -62,7 +72,7 @@ void update_encoder(rotaryencoder_check_s *encoder)
   ESP_LOGI(TAG, "last_encoded #%d encoded #%d", encoder->encoder_value, encoded);
 
   encoder->last_encoded = encoded;
-  encoder->previous_millis = millis();
+  encoder->previous_millis = xTaskGetTickCount() * portTICK_PERIOD_MS;
 
   rotaryencoder_reading_t reading = {
   .label = encoder->label,
