@@ -11,6 +11,8 @@ static const char *TAG = "leds";
 static struct led_color_t led_strip_buf_1[LED_STRIP_LENGTH];
 static struct led_color_t led_strip_buf_2[LED_STRIP_LENGTH];
 
+uint8_t led_bright = 2;
+
 #define LED_STRIP_LENGTH 2
 #define LED_STRIP_RMT_INTR_NUM 19
 
@@ -102,9 +104,9 @@ static void leds_update_task(void *pvParameter) {
     }
     led_strip_show(&led_strip);
 
-    led_color.red   = lights[rgb_red];
-    led_color.green = lights[rgb_green];
-    led_color.blue  = lights[rgb_blue];
+    led_color.red   = ((uint32_t)(lights[rgb_red]) * led_bright) >> 5;
+    led_color.green = ((uint32_t)(lights[rgb_green]) * led_bright) >> 5;
+    led_color.blue  = ((uint32_t)(lights[rgb_blue]) * led_bright) >> 5;
 
     rgb_red += 1;
     rgb_green += 1;

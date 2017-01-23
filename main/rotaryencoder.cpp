@@ -1,4 +1,5 @@
 #include "rotaryencoder.h"
+#include "leds.h"
 #include "esp_log.h"
 #include <driver/gpio.h>
 
@@ -50,7 +51,6 @@ static void rotaryencoder_check_task(void *pvParameter)
 
 void update_encoder(rotaryencoder_check_s *encoder)
 {
-
   int last_encoder_value = encoder->encoder_value;
 
   int MSB = gpio_get_level (RENC_PIN1);
@@ -64,6 +64,11 @@ void update_encoder(rotaryencoder_check_s *encoder)
 
   if(sum == 0b1101 || sum == 0b0100 || sum == 0b0010 || sum == 0b1011) encoder->encoder_value --;
   if(sum == 0b1110 || sum == 0b0111 || sum == 0b0001 || sum == 0b1000) encoder->encoder_value ++;
+
+  if (encoder->encoder_value < 0)
+    encoder->encoder_value = 0;
+  else if (encoder->encoder_value > 31)
+    encoder->encoder_value = 31;
 
   if (last_encoder_value == encoder->encoder_value) {
     return; /* No change. Ignore it */
@@ -79,6 +84,8 @@ void update_encoder(rotaryencoder_check_s *encoder)
   .label = encoder->label,
   .value = encoder->encoder_value,
   };
+
+  led_bright = encoder->encoder_value;
 
   QueueHandle_t queue = encoder_queue;
   // NOTE: This currently publishes a lot of messages while the encoder is being operated
