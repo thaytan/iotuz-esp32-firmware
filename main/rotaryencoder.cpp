@@ -7,6 +7,8 @@ static const char *TAG = "rotaryencoder";
 static QueueHandle_t encoder_queue;
 static SemaphoreHandle_t rotaryencoder_interrupt_sem;
 
+static uint32_t interrupts;
+
 static void rotaryencoder_check_task(void *pvParameter);
 void update_encoder(rotaryencoder_check_s *encoder);
 static void EncoderInterrupt();
@@ -68,7 +70,7 @@ void update_encoder(rotaryencoder_check_s *encoder)
   }
 
   ESP_LOGI(TAG, "encoder read #%d", encoder->encoder_value);
-  ESP_LOGI(TAG, "last_encoded #%d encoded #%d", encoder->encoder_value, encoded);
+  ESP_LOGI(TAG, "last_encoded #%d encoded #%d intr cnt %d", sum >> 2, encoded, interrupts);
 
   encoder->last_encoded = encoded;
   encoder->previous_millis = xTaskGetTickCount() * portTICK_PERIOD_MS;
@@ -89,6 +91,7 @@ void update_encoder(rotaryencoder_check_s *encoder)
 static void IRAM_ATTR EncoderInterrupt()
 {
   portBASE_TYPE higher_task_awoken = pdFALSE;
+  interrupts++;
   xSemaphoreGiveFromISR(rotaryencoder_interrupt_sem, &higher_task_awoken);
   if (higher_task_awoken) {
 	portYIELD_FROM_ISR();
